@@ -40,7 +40,10 @@ def get_train_data():
         # valid_lr_img_list = sorted(tl.files.load_file_list(path=config.VALID.lr_img_path, regx='.*.png', printable=False))
 
     ## If your machine have enough memory, please pre-load the entire train set.
-    train_hr_imgs = tl.vis.read_images(train_hr_img_list, path=config.TRAIN.hr_img_path, n_threads=32)
+    train_hr_imgs1 = tl.vis.read_images(train_hr_img_list, path=config.TRAIN.hr_img_path, n_threads=32)
+    train_hr_imgs = []
+    for im in train_hr_imgs1: #Convert greyscale to RGB
+      train_hr_imgs.append(np.stack((im,)*3, axis=-1))
         # for im in train_hr_imgs:
         #     print(im.shape)
         # valid_lr_imgs = tl.vis.read_images(valid_lr_img_list, path=config.VALID.lr_img_path, n_threads=32)
@@ -87,7 +90,10 @@ def train():
     train_ds = get_train_data()
 
     ## initialize learning (G)
-    n_step_epoch = round(n_epoch_init // batch_size)
+    step = 0
+    for step, (lr_patchs, hr_patchs) in enumerate(train_ds):
+        n_step_epoch = step
+    
     for epoch in range(n_epoch_init):
         for step, (lr_patchs, hr_patchs) in enumerate(train_ds):
             if lr_patchs.shape[0] != batch_size: # if the remaining data in this epoch < batch_size
@@ -98,13 +104,16 @@ def train():
                 mse_loss = tl.cost.mean_squared_error(fake_hr_patchs, hr_patchs, is_mean=True)
             grad = tape.gradient(mse_loss, G.trainable_weights)
             g_optimizer_init.apply_gradients(zip(grad, G.trainable_weights))
-            print("Epoch: [{}/{}] step: [{}/{}] time: {:.3f}s, mse: {:.3f} ".format(
-                epoch, n_epoch_init, step, n_step_epoch, time.time() - step_time, mse_loss))
+            print("\rEpoch: [{}/{}] step: [{}/{}] time: {:.3f}s, mse: {:.3f} ".format(
+                epoch + 1, n_epoch_init, step + 1, n_step_epoch, time.time() - step_time, mse_loss), end='')
         if (epoch != 0) and (epoch % 10 == 0):
             tl.vis.save_images(fake_hr_patchs.numpy(), [2, 4], os.path.join(save_dir, 'train_g_init_{}.png'.format(epoch)))
 
+
+    print("\nGenerator initialization learning complete.\n")
     ## adversarial learning (G, D)
-    n_step_epoch = round(n_epoch // batch_size)
+    for step, (lr_patchs, hr_patchs) in enumerate(train_ds):
+        n_step_epoch = step
     for epoch in range(n_epoch):
         for step, (lr_patchs, hr_patchs) in enumerate(train_ds):
             if lr_patchs.shape[0] != batch_size: # if the remaining data in this epoch < batch_size
@@ -127,8 +136,8 @@ def train():
             g_optimizer.apply_gradients(zip(grad, G.trainable_weights))
             grad = tape.gradient(d_loss, D.trainable_weights)
             d_optimizer.apply_gradients(zip(grad, D.trainable_weights))
-            print("Epoch: [{}/{}] step: [{}/{}] time: {:.3f}s, g_loss(mse:{:.3f}, vgg:{:.3f}, adv:{:.3f}) d_loss: {:.3f}".format(
-                epoch, n_epoch_init, step, n_step_epoch, time.time() - step_time, mse_loss, vgg_loss, g_gan_loss, d_loss))
+            print("\rEpoch: [{}/{}] step: [{}/{}] time: {:.3f}s, g_loss(mse:{:.3f}, vgg:{:.3f}, adv:{:.3f}) d_loss: {:.3f}".format(
+                epoch + 1, n_epoch, step + 1, n_step_epoch, time.time() - step_time, mse_loss, vgg_loss, g_gan_loss, d_loss), end='')
 
         # update the learning rate
         if epoch != 0 and (epoch % decay_every == 0):
