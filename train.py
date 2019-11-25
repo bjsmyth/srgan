@@ -40,12 +40,12 @@ def get_train_data():
         # valid_lr_img_list = sorted(tl.files.load_file_list(path=config.VALID.lr_img_path, regx='.*.png', printable=False))
 
     ## If your machine have enough memory, please pre-load the entire train set.
-    train_hr_imgs1 = tl.vis.read_images(train_hr_img_list, path=config.TRAIN.hr_img_path, n_threads=32)
-    train_hr_imgs = []
-    for im in train_hr_imgs1: #Convert greyscale to RGB
-      train_hr_imgs.append(np.stack((im,)*3, axis=-1))
-        # for im in train_hr_imgs:
-        #     print(im.shape)
+    train_hr_imgs = tl.vis.read_images(train_hr_img_list, path=config.TRAIN.hr_img_path, n_threads=32)
+    #train_hr_imgs = []
+    #for im in train_hr_imgs1: #Convert greyscale to RGB
+    #  train_hr_imgs.append(np.stack((im,)*3, axis=-1))
+    #for im in train_hr_imgs:
+    #    print(im.shape)
         # valid_lr_imgs = tl.vis.read_images(valid_lr_img_list, path=config.VALID.lr_img_path, n_threads=32)
         # for im in valid_lr_imgs:
         #     print(im.shape)
@@ -58,7 +58,8 @@ def get_train_data():
         for img in train_hr_imgs:
             yield img
     def _map_fn_train(img):
-        hr_patch = tf.image.random_crop(img, [384, 384, 3])
+        hr_patch = tf.image.random_crop(img, [384, 384])
+        hr_patch = tf.expand_dims(hr_patch, -1)
         hr_patch = hr_patch / (255. / 2.)
         hr_patch = hr_patch - 1.
         hr_patch = tf.image.random_flip_left_right(hr_patch)
@@ -74,8 +75,8 @@ def get_train_data():
     return train_ds
 
 def train():
-    G = get_G((batch_size, 96, 96, 3))
-    D = get_D((batch_size, 384, 384, 3))
+    G = get_G((batch_size, 96, 96, 1))
+    D = get_D((batch_size, 384, 384, 1))
     VGG = tl.models.vgg19(pretrained=True, end_with='pool4', mode='static')
 
     lr_v = tf.Variable(lr_init)
@@ -163,9 +164,11 @@ def evaluate():
     # for im in train_hr_imgs:
     #     print(im.shape)
     valid_lr_imgs = tl.vis.read_images(valid_lr_img_list, path=config.VALID.lr_img_path, n_threads=32)
+    valid_lr_imgs = tf.expand_dims(valid_lr_imgs, -1)
     # for im in valid_lr_imgs:
     #     print(im.shape)
     valid_hr_imgs = tl.vis.read_images(valid_hr_img_list, path=config.VALID.hr_img_path, n_threads=32)
+    valid_hr_imgs = tf.expand_dims(valid_hr_imgs, -1)
     # for im in valid_hr_imgs:
     #     print(im.shape)
 
