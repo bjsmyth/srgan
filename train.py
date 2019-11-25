@@ -40,7 +40,10 @@ def get_train_data():
         # valid_lr_img_list = sorted(tl.files.load_file_list(path=config.VALID.lr_img_path, regx='.*.png', printable=False))
 
     ## If your machine have enough memory, please pre-load the entire train set.
-    train_hr_imgs = tl.vis.read_images(train_hr_img_list, path=config.TRAIN.hr_img_path, n_threads=32)
+    train_hr_imgs1 = tl.vis.read_images(train_hr_img_list, path=config.TRAIN.hr_img_path, n_threads=32)
+    train_hr_imgs = []
+    for im in train_hr_imgs1: #Convert greyscale to RGB
+      train_hr_imgs.append(np.stack((im,)*3, axis=-1))
         # for im in train_hr_imgs:
         #     print(im.shape)
         # valid_lr_imgs = tl.vis.read_images(valid_lr_img_list, path=config.VALID.lr_img_path, n_threads=32)
