@@ -34,7 +34,7 @@ def get_G(input_shape):
     n = Conv2d(256, (3, 3), (1, 1), act=None, padding='SAME', W_init=w_init)(n)
     n = SubpixelConv2d(scale=2, n_out_channels=None, act=tf.nn.relu)(n)
 
-    nn = Conv2d(3, (1, 1), (1, 1), act=tf.nn.tanh, padding='SAME', W_init=w_init)(n)
+    nn = Conv2d(1, (1, 1), (1, 1), act=tf.nn.tanh, padding='SAME', W_init=w_init)(n)
     G = Model(inputs=nin, outputs=nn, name="generator")
     return G
 
